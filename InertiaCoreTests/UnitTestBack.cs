@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Net;
 using InertiaCore;
 using InertiaCore.Extensions;
 using InertiaCore.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -39,24 +41,22 @@ public partial class Tests
         var services = new ServiceCollection();
         services.AddSingleton<IActionResultExecutor<StatusCodeResult>>(new Mock<IActionResultExecutor<StatusCodeResult>>().Object);
         services.AddLogging();
+        services.AddMvc();
         var serviceProvider = services.BuildServiceProvider();
 
         var httpContext = new Mock<HttpContext>();
         httpContext.SetupGet(c => c.Request).Returns(request.Object);
         httpContext.SetupGet(c => c.Response).Returns(response.Object);
         httpContext.SetupGet(c => c.RequestServices).Returns(serviceProvider);
+        httpContext.SetupGet(c => c.Items).Returns(new Dictionary<object, object?>());
+        httpContext.SetupGet(c => c.Features).Returns(new FeatureCollection());
 
         var context = new ActionContext(httpContext.Object, new RouteData(), new ActionDescriptor());
 
         await backResult.ExecuteResultAsync(context);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(responseHeaders.ContainsKey("Location"), Is.True);
-            Assert.That(responseHeaders["Location"].ToString(), Is.EqualTo("back"));
-            // Verify that status code 302 (Redirect) is set
-            response.VerifySet(r => r.StatusCode = (int)HttpStatusCode.Redirect, Times.Once);
-        });
+        // Since there's no referrer, it should redirect to the fallback URL
+        response.Verify(r => r.Redirect("/fallback", false), Times.Once);
     }
 
     [Test]
@@ -88,12 +88,15 @@ public partial class Tests
         var services = new ServiceCollection();
         services.AddSingleton<IActionResultExecutor<RedirectResult>>(new Mock<IActionResultExecutor<RedirectResult>>().Object);
         services.AddSingleton<ILoggerFactory>(new Mock<ILoggerFactory>().Object);
+        services.AddMvc();
         var serviceProvider = services.BuildServiceProvider();
 
         var httpContext = new Mock<HttpContext>();
         httpContext.SetupGet(c => c.Request).Returns(request.Object);
         httpContext.SetupGet(c => c.Response).Returns(response.Object);
         httpContext.SetupGet(c => c.RequestServices).Returns(serviceProvider);
+        httpContext.SetupGet(c => c.Items).Returns(new Dictionary<object, object?>());
+        httpContext.SetupGet(c => c.Features).Returns(new FeatureCollection());
 
         var context = new ActionContext(httpContext.Object, new RouteData(), new ActionDescriptor());
 
@@ -132,12 +135,15 @@ public partial class Tests
         var services = new ServiceCollection();
         services.AddSingleton<IActionResultExecutor<RedirectResult>>(new Mock<IActionResultExecutor<RedirectResult>>().Object);
         services.AddSingleton<ILoggerFactory>(new Mock<ILoggerFactory>().Object);
+        services.AddMvc();
         var serviceProvider = services.BuildServiceProvider();
 
         var httpContext = new Mock<HttpContext>();
         httpContext.SetupGet(c => c.Request).Returns(request.Object);
         httpContext.SetupGet(c => c.Response).Returns(response.Object);
         httpContext.SetupGet(c => c.RequestServices).Returns(serviceProvider);
+        httpContext.SetupGet(c => c.Items).Returns(new Dictionary<object, object?>());
+        httpContext.SetupGet(c => c.Features).Returns(new FeatureCollection());
 
         var context = new ActionContext(httpContext.Object, new RouteData(), new ActionDescriptor());
 
@@ -182,6 +188,8 @@ public partial class Tests
         httpContext.SetupGet(c => c.Request).Returns(request.Object);
         httpContext.SetupGet(c => c.Response).Returns(response.Object);
         httpContext.SetupGet(c => c.RequestServices).Returns(serviceProvider);
+        httpContext.SetupGet(c => c.Items).Returns(new Dictionary<object, object?>());
+        httpContext.SetupGet(c => c.Features).Returns(new FeatureCollection());
 
         var context = new ActionContext(httpContext.Object, new RouteData(), new ActionDescriptor());
 
