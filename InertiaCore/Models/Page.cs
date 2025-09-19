@@ -17,7 +17,4 @@ internal class Page
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, List<string>>? DeferredProps { get; set; }
 
-    public bool EncryptHistory { get; set; } = false;
-    public bool ClearHistory { get; set; } = false;
-
 }
