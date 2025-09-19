@@ -16,7 +16,7 @@ namespace InertiaCoreTests;
 public partial class Tests
 {
     [Test]
-    [Description("Test Back function with Inertia request returns conflict status with location header.")]
+    [Description("Test Back function with Inertia request returns redirect status with location header.")]
     public async Task TestBackWithInertiaRequest()
     {
         var backResult = _factory.Back("/fallback");
@@ -52,10 +52,10 @@ public partial class Tests
 
         Assert.Multiple(() =>
         {
-            Assert.That(responseHeaders.ContainsKey("X-Inertia-Location"), Is.True);
-            Assert.That(responseHeaders["X-Inertia-Location"].ToString(), Is.EqualTo("back"));
-            // Verify that status code 409 (Conflict) is set
-            response.VerifySet(r => r.StatusCode = (int)HttpStatusCode.Conflict, Times.Once);
+            Assert.That(responseHeaders.ContainsKey("Location"), Is.True);
+            Assert.That(responseHeaders["Location"].ToString(), Is.EqualTo("back"));
+            // Verify that status code 302 (Redirect) is set
+            response.VerifySet(r => r.StatusCode = (int)HttpStatusCode.Redirect, Times.Once);
         });
     }
 
