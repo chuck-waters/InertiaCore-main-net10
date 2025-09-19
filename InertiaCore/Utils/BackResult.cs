@@ -15,13 +15,6 @@ public class BackResult : IActionResult
         var referrer = context.HttpContext.Request.Headers.Referer.ToString();
         var redirectUrl = !string.IsNullOrEmpty(referrer) ? referrer : _fallbackUrl;
 
-        if (context.IsInertiaRequest())
-        {
-            context.HttpContext.Response.Headers.Override(InertiaHeader.Location, redirectUrl);
-            await new StatusCodeResult((int)HttpStatusCode.Conflict).ExecuteResultAsync(context);
-            return;
-        }
-
         await new RedirectResult(redirectUrl).ExecuteResultAsync(context);
     }
 }
