@@ -4,6 +4,7 @@ using InertiaCore.Extensions;
 using InertiaCore.Models;
 using InertiaCore.Props;
 using InertiaCore.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -63,7 +64,7 @@ public class Response : IActionResult
         props = ResolveInertiaPropertyProviders(props);
         props = ResolvePartialProperties(props);
         props = ResolveAlways(props);
-        props = await ResolvePropertyInstances(props);
+        props = await ResolvePropertyInstances(props, _context!.HttpContext.Request);
 
         return props;
     }
@@ -174,7 +175,7 @@ public class Response : IActionResult
     /// <summary>
     /// Resolve all necessary class instances in the given props.
     /// </summary>
-    private static async Task<Dictionary<string, object?>> ResolvePropertyInstances(Dictionary<string, object?> props)
+    private static async Task<Dictionary<string, object?>> ResolvePropertyInstances(Dictionary<string, object?> props, HttpRequest request)
     {
         return (await Task.WhenAll(props.Select(async pair =>
         {
@@ -185,12 +186,13 @@ public class Response : IActionResult
                 Func<object?> f => (key, await f.ResolveAsync()),
                 Task t => (key, await t.ResolveResult()),
                 InvokableProp p => (key, await p.Invoke()),
+                ProvidesInertiaProperty pip => (key, pip.ToInertiaProperty(new PropertyContext(key, props, request))),
                 _ => (key, pair.Value)
             };
 
             if (value.Item2 is Dictionary<string, object?> dict)
             {
-                value = (key, await ResolvePropertyInstances(dict));
+                value = (key, await ResolvePropertyInstances(dict, request));
             }
 
             return value;
