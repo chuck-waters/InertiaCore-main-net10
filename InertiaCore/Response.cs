@@ -60,6 +60,7 @@ public class Response : IActionResult
         var props = _props;
 
         props = ResolveSharedProps(props);
+        props = ResolveInertiaPropertyProviders(props);
         props = ResolvePartialProperties(props);
         props = ResolveAlways(props);
         props = await ResolvePropertyInstances(props);
@@ -75,6 +76,32 @@ public class Response : IActionResult
         var shared = _context!.HttpContext.Features.Get<InertiaSharedProps>();
         if (shared != null)
             props = shared.GetMerged(props);
+
+        return props;
+    }
+
+    /// <summary>
+    /// Resolve properties from objects implementing ProvidesInertiaProperties.
+    /// </summary>
+    private Dictionary<string, object?> ResolveInertiaPropertyProviders(Dictionary<string, object?> props)
+    {
+        var context = new RenderContext(_component, _context!.HttpContext.Request);
+
+        foreach (var pair in props.ToList())
+        {
+            if (pair.Value is ProvidesInertiaProperties provider)
+            {
+                // Remove the provider object itself
+                props.Remove(pair.Key);
+
+                // Add the properties it provides
+                var providedProps = provider.ToInertiaProperties(context);
+                foreach (var providedProp in providedProps)
+                {
+                    props[providedProp.Key] = providedProp.Value;
+                }
+            }
+        }
 
         return props;
     }
