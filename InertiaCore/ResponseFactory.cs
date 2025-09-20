@@ -22,6 +22,7 @@ internal interface IResponseFactory
     public LocationResult Location(string url);
     public void Share(string key, object? value);
     public void Share(IDictionary<string, object?> data);
+    public void FlushShared();
     public AlwaysProp Always(object? value);
     public AlwaysProp Always(Func<object?> callback);
     public AlwaysProp Always(Func<Task<object?>> callback);
@@ -129,6 +130,17 @@ internal class ResponseFactory : IResponseFactory
         sharedData.Merge(data);
 
         context.Features.Set(sharedData);
+    }
+
+    public void FlushShared()
+    {
+        var context = _contextAccessor.HttpContext!;
+
+        var sharedData = context.Features.Get<InertiaSharedProps>();
+        if (sharedData != null)
+        {
+            sharedData.Clear();
+        }
     }
 
     public LazyProp Lazy(Func<object?> callback) => new(callback);
