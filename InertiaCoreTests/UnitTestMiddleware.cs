@@ -15,55 +15,11 @@ using InertiaCore.Ssr;
 
 namespace InertiaCoreTests;
 
-// Test implementation of middleware for testing purposes
-public class TestMiddleware
-{
-    private readonly RequestDelegate _next;
-    private readonly IApplicationBuilder _app;
-
-    public TestMiddleware(RequestDelegate next, IApplicationBuilder app)
-    {
-        _next = next;
-        _app = app;
-    }
-
-    public async Task InvokeAsync(HttpContext context)
-    {
-        // Simple check for Inertia request
-        var isInertia = context.Request.Headers.ContainsKey(InertiaHeader.Inertia);
-        var requestVersion = context.Request.Headers[InertiaHeader.Version].FirstOrDefault();
-        var currentVersion = Inertia.GetVersion();
-
-        if (isInertia && context.Request.Method == "GET" && requestVersion != currentVersion)
-        {
-            await OnVersionChange(context, _app);
-            return;
-        }
-        await _next(context);
-    }
-
-    private static async Task OnVersionChange(HttpContext context, IApplicationBuilder app)
-    {
-        var tempData = app.ApplicationServices.GetRequiredService<ITempDataDictionaryFactory>()
-            .GetTempData(context);
-
-        if (tempData.Count > 0) tempData.Keep();
-
-        var requestUri = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}";
-        context.Response.Headers[InertiaHeader.Location] = requestUri;
-        context.Response.StatusCode = (int)HttpStatusCode.Conflict;
-
-        // Mock the CompleteAsync for testing
-        await Task.CompletedTask;
-    }
-}
-
 [TestFixture]
 public class UnitTestMiddleware
 {
-    private TestMiddleware _middleware = null!;
+    private Middleware _middleware = null!;
     private Mock<RequestDelegate> _nextMock = null!;
-    private Mock<IApplicationBuilder> _appMock = null!;
     private Mock<IServiceProvider> _serviceProviderMock = null!;
     private Mock<ITempDataDictionaryFactory> _tempDataFactoryMock = null!;
     private Mock<ITempDataDictionary> _tempDataMock = null!;
@@ -73,7 +29,6 @@ public class UnitTestMiddleware
     public void Setup()
     {
         _nextMock = new Mock<RequestDelegate>();
-        _appMock = new Mock<IApplicationBuilder>();
         _serviceProviderMock = new Mock<IServiceProvider>();
         _tempDataFactoryMock = new Mock<ITempDataDictionaryFactory>();
         _tempDataMock = new Mock<ITempDataDictionary>();
@@ -83,8 +38,6 @@ public class UnitTestMiddleware
 
         _serviceProviderMock.Setup(s => s.GetService(typeof(ITempDataDictionaryFactory)))
             .Returns(_tempDataFactoryMock.Object);
-
-        _appMock.Setup(a => a.ApplicationServices).Returns(_serviceProviderMock.Object);
 
         // Set up Inertia factory
         var contextAccessor = new Mock<IHttpContextAccessor>();
@@ -96,7 +49,14 @@ public class UnitTestMiddleware
         _factory = new ResponseFactory(contextAccessor.Object, gateway, options.Object);
         Inertia.UseFactory(_factory);
 
-        _middleware = new TestMiddleware(_nextMock.Object, _appMock.Object);
+        _middleware = new Middleware(_nextMock.Object);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        // Reset the static factory to not interfere with other tests
+        Inertia.ResetFactory();
     }
 
     [Test]
@@ -172,7 +132,7 @@ public class UnitTestMiddleware
 
         // Assert
         Assert.That(context.Response.StatusCode, Is.EqualTo((int)HttpStatusCode.Conflict));
-        Assert.That(context.Response.Headers[InertiaHeader.Location], Is.EqualTo("https://example.com/test"));
+        Assert.That(context.Response.Headers[InertiaHeader.Location].ToString(), Is.EqualTo("/test"));
         _nextMock.Verify(next => next(It.IsAny<HttpContext>()), Times.Never);
     }
 
@@ -245,7 +205,7 @@ public class UnitTestMiddleware
         _nextMock.Verify(next => next(context), Times.Once);
     }
 
-    private static HttpContext CreateHttpContext(
+    private HttpContext CreateHttpContext(
         bool isInertia = false,
         string method = "GET",
         string? version = null,
@@ -277,6 +237,7 @@ public class UnitTestMiddleware
         var contextMock = new Mock<HttpContext>();
         contextMock.SetupGet(c => c.Request).Returns(requestMock.Object);
         contextMock.SetupGet(c => c.Response).Returns(responseMock.Object);
+        contextMock.SetupGet(c => c.RequestServices).Returns(_serviceProviderMock.Object);
 
         return contextMock.Object;
     }

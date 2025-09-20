@@ -1,0 +1,152 @@
+using InertiaCore;
+using InertiaCore.Extensions;
+using InertiaCore.Utils;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using NUnit.Framework;
+using System.Net;
+
+namespace InertiaCoreTests;
+
+[TestFixture]
+public class IntegrationTestMiddleware
+{
+    private TestServer _server = null!;
+    private HttpClient _client = null!;
+
+    [SetUp]
+    public void Setup()
+    {
+        // Create test server with Inertia middleware
+        var builder = new HostBuilder()
+            .ConfigureWebHost(webHost =>
+            {
+                webHost.UseTestServer();
+                webHost.ConfigureServices(services =>
+                {
+                    services.AddInertia();
+                    services.AddMvc();
+                });
+                webHost.Configure(app =>
+                {
+                    // This calls UseInertia which should register the middleware
+                    app.UseInertia();
+                    app.UseRouting();
+                    app.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapGet("/test", async context =>
+                        {
+                            await context.Response.WriteAsync("Hello from endpoint");
+                        });
+                    });
+                });
+            });
+
+        var host = builder.Start();
+        _server = host.GetTestServer();
+        _client = _server.CreateClient();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _client?.Dispose();
+        _server?.Dispose();
+
+        // Reset the static factory to not interfere with other tests
+        Inertia.ResetFactory();
+    }
+
+    [Test]
+    public async Task Middleware_IsRegistered_WhenInertiaRequestWithVersionMismatch_Returns409()
+    {
+        // Arrange
+        Inertia.Version("v2.0.0");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/test");
+        request.Headers.Add(InertiaHeader.Inertia, "true");
+        request.Headers.Add(InertiaHeader.Version, "v1.0.0");
+
+        // Act
+        var response = await _client.SendAsync(request);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.That(response.Headers.Contains(InertiaHeader.Location), Is.True);
+        Assert.That(response.Headers.GetValues(InertiaHeader.Location).First(), Is.EqualTo("/test"));
+    }
+
+    [Test]
+    public async Task Middleware_IsRegistered_WhenNonInertiaRequest_PassesThrough()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Get, "/test");
+
+        // Act
+        var response = await _client.SendAsync(request);
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(content, Is.EqualTo("Hello from endpoint"));
+    }
+
+    [Test]
+    public async Task Middleware_IsRegistered_WhenInertiaRequestWithSameVersion_PassesThrough()
+    {
+        // Arrange
+        Inertia.Version("v1.0.0");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/test");
+        request.Headers.Add(InertiaHeader.Inertia, "true");
+        request.Headers.Add(InertiaHeader.Version, "v1.0.0");
+
+        // Act
+        var response = await _client.SendAsync(request);
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(content, Is.EqualTo("Hello from endpoint"));
+    }
+
+    [Test]
+    public async Task Middleware_IsRegistered_WhenInertiaPostRequest_PassesThrough()
+    {
+        // Arrange
+        Inertia.Version("v2.0.0");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/test");
+        request.Headers.Add(InertiaHeader.Inertia, "true");
+        request.Headers.Add(InertiaHeader.Version, "v1.0.0"); // Different version
+
+        // Act
+        var response = await _client.SendAsync(request);
+
+        // Assert - POST should pass through even with version mismatch
+        Assert.That(response.StatusCode, Is.Not.EqualTo(HttpStatusCode.Conflict));
+    }
+
+    [Test]
+    public async Task Middleware_HandlesMultipleRequests_WithDifferentVersions()
+    {
+        // First request with matching version
+        Inertia.Version("v1.0.0");
+        var request1 = new HttpRequestMessage(HttpMethod.Get, "/test");
+        request1.Headers.Add(InertiaHeader.Inertia, "true");
+        request1.Headers.Add(InertiaHeader.Version, "v1.0.0");
+
+        var response1 = await _client.SendAsync(request1);
+        Assert.That(response1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // Change version and send request with old version
+        Inertia.Version("v2.0.0");
+        var request2 = new HttpRequestMessage(HttpMethod.Get, "/test");
+        request2.Headers.Add(InertiaHeader.Inertia, "true");
+        request2.Headers.Add(InertiaHeader.Version, "v1.0.0");
+
+        var response2 = await _client.SendAsync(request2);
+        Assert.That(response2.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+    }
+}
