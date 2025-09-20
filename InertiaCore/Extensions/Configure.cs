@@ -24,18 +24,7 @@ public static class Configure
             Inertia.Version(Vite.GetManifestHash);
         }
 
-        app.Use(async (context, next) =>
-        {
-            if (context.IsInertiaRequest()
-                && context.Request.Method == "GET"
-                && context.Request.Headers[InertiaHeader.Version] != Inertia.GetVersion())
-            {
-                await OnVersionChange(context, app);
-                return;
-            }
-
-            await next();
-        });
+        app.UseMiddleware<Middleware>();
 
         return app;
     }
@@ -63,18 +52,5 @@ public static class Configure
         if (options != null) services.Configure(options);
 
         return services;
-    }
-
-    private static async Task OnVersionChange(HttpContext context, IApplicationBuilder app)
-    {
-        var tempData = app.ApplicationServices.GetRequiredService<ITempDataDictionaryFactory>()
-            .GetTempData(context);
-
-        if (tempData.Any()) tempData.Keep();
-
-        context.Response.Headers.Override(InertiaHeader.Location, context.RequestedUri());
-        context.Response.StatusCode = (int)HttpStatusCode.Conflict;
-
-        await context.Response.CompleteAsync();
     }
 }
