@@ -230,9 +230,11 @@ public class UnitTestMiddleware
         requestMock.SetupGet(r => r.Headers).Returns(requestHeaders);
 
         var responseHeaders = new HeaderDictionary();
+        var responseBody = new MemoryStream();
         var responseMock = new Mock<HttpResponse>();
         responseMock.SetupGet(r => r.Headers).Returns(responseHeaders);
         responseMock.SetupProperty(r => r.StatusCode);
+        responseMock.SetupGet(r => r.Body).Returns(responseBody);
 
         var contextMock = new Mock<HttpContext>();
         contextMock.SetupGet(c => c.Request).Returns(requestMock.Object);

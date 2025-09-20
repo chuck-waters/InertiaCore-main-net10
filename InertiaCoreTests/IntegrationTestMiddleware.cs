@@ -42,6 +42,15 @@ public class IntegrationTestMiddleware
                         {
                             await context.Response.WriteAsync("Hello from endpoint");
                         });
+
+                        endpoints.MapPost("/empty", context =>
+                        {
+                            // Return empty response (no content written)
+                            context.Response.StatusCode = 200;
+                            context.Response.ContentLength = 0;
+                            // Intentionally don't write anything to simulate empty response
+                            return Task.CompletedTask;
+                        });
                     });
                 });
             });
@@ -148,5 +157,36 @@ public class IntegrationTestMiddleware
 
         var response2 = await _client.SendAsync(request2);
         Assert.That(response2.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+    }
+
+    [Test]
+    public async Task Middleware_HandlesEmptyResponse_RedirectsToDefault()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Post, "/empty");
+        request.Headers.Add(InertiaHeader.Inertia, "true");
+
+        // Act
+        var response = await _client.SendAsync(request);
+
+        // Assert - Should redirect back to default since no referrer is available in test
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.SeeOther));
+        Assert.That(response.Headers.Location?.ToString(), Is.EqualTo("/"));
+    }
+
+
+    [Test]
+    public async Task Middleware_NonInertiaEmptyResponse_DoesNotRedirect()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Post, "/empty");
+        // No Inertia header
+
+        // Act
+        var response = await _client.SendAsync(request);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(response.Headers.Location, Is.Null);
     }
 }
