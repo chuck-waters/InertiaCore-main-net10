@@ -13,4 +13,7 @@ internal class Page
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? MergeProps { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, string[]>? MergeStrategies { get; set; }
 }

@@ -318,4 +318,149 @@ public partial class Tests
         Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge1", "testMerge3" }));
     }
 
+    [Test]
+    [Description("Test if merge strategies are resolved properly for merge props.")]
+    public async Task TestMergeStrategies()
+    {
+        var response = _factory.Render("Test/Page", new
+        {
+            Test = "Test",
+            TestMerge1 = _factory.Merge("Merge1", "deep"),
+            TestMerge2 = _factory.Merge(() => "Merge2", new[] { "shallow", "replace" }),
+            TestNormal = "Normal"
+        });
+
+        var context = PrepareContext();
+
+        response.SetContext(context);
+        await response.ProcessResponse();
+
+        var page = response.GetJson().Value as Page;
+
+        Assert.That(page?.Props, Is.EqualTo(new Dictionary<string, object?>
+        {
+            { "test", "Test" },
+            { "testMerge1", "Merge1" },
+            { "testMerge2", "Merge2" },
+            { "testNormal", "Normal" },
+            { "errors", new Dictionary<string, string>(0) }
+        }));
+
+        Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge1", "testMerge2" }));
+        Assert.That(page?.MergeStrategies, Is.EqualTo(new Dictionary<string, string[]>
+        {
+            { "testMerge1", new[] { "deep" } },
+            { "testMerge2", new[] { "shallow", "replace" } }
+        }));
+    }
+
+    [Test]
+    [Description("Test if merge strategies are handled properly with partial props.")]
+    public async Task TestMergeStrategiesWithPartialProps()
+    {
+        var response = _factory.Render("Test/Page", new
+        {
+            TestMerge1 = _factory.Merge("Merge1", "deep"),
+            TestMerge2 = _factory.Merge(() => "Merge2", new[] { "shallow", "replace" }),
+            TestMerge3 = _factory.Merge("Merge3", "custom")
+        });
+
+        var headers = new HeaderDictionary
+        {
+            { "X-Inertia-Partial-Data", "testMerge1,testMerge3" },
+            { "X-Inertia-Partial-Component", "Test/Page" }
+        };
+
+        var context = PrepareContext(headers);
+
+        response.SetContext(context);
+        await response.ProcessResponse();
+
+        var page = response.GetJson().Value as Page;
+
+        Assert.That(page?.Props, Is.EqualTo(new Dictionary<string, object?>
+        {
+            { "testMerge1", "Merge1" },
+            { "testMerge3", "Merge3" },
+            { "errors", new Dictionary<string, string>(0) }
+        }));
+
+        Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge1", "testMerge3" }));
+        Assert.That(page?.MergeStrategies, Is.EqualTo(new Dictionary<string, string[]>
+        {
+            { "testMerge1", new[] { "deep" } },
+            { "testMerge3", new[] { "custom" } }
+        }));
+    }
+
+    [Test]
+    [Description("Test if merge strategies are excluded when using PARTIAL_EXCEPT header.")]
+    public async Task TestMergeStrategiesWithPartialExcept()
+    {
+        var response = _factory.Render("Test/Page", new
+        {
+            Test = "Test",
+            TestMerge1 = _factory.Merge("Merge1", "deep"),
+            TestMerge2 = _factory.Merge(() => "Merge2", new[] { "shallow", "replace" }),
+            TestNormal = "Normal"
+        });
+
+        var headers = new HeaderDictionary
+        {
+            { "X-Inertia-Partial-Except", "testMerge1" },
+            { "X-Inertia-Partial-Component", "Test/Page" }
+        };
+
+        var context = PrepareContext(headers);
+
+        response.SetContext(context);
+        await response.ProcessResponse();
+
+        var page = response.GetJson().Value as Page;
+
+        Assert.That(page?.Props, Is.EqualTo(new Dictionary<string, object?>
+        {
+            { "test", "Test" },
+            { "testMerge2", "Merge2" },
+            { "testNormal", "Normal" },
+            { "errors", new Dictionary<string, string>(0) }
+        }));
+
+        Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge2" }));
+        Assert.That(page?.MergeStrategies, Is.EqualTo(new Dictionary<string, string[]>
+        {
+            { "testMerge2", new[] { "shallow", "replace" } }
+        }));
+    }
+
+    [Test]
+    [Description("Test if merge strategies are null when no merge props have strategies.")]
+    public async Task TestNoMergeStrategies()
+    {
+        var response = _factory.Render("Test/Page", new
+        {
+            Test = "Test",
+            TestMerge = _factory.Merge(() => "Merge"), // No strategies
+            TestNormal = "Normal"
+        });
+
+        var context = PrepareContext();
+
+        response.SetContext(context);
+        await response.ProcessResponse();
+
+        var page = response.GetJson().Value as Page;
+
+        Assert.That(page?.Props, Is.EqualTo(new Dictionary<string, object?>
+        {
+            { "test", "Test" },
+            { "testMerge", "Merge" },
+            { "testNormal", "Normal" },
+            { "errors", new Dictionary<string, string>(0) }
+        }));
+
+        Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge" }));
+        Assert.That(page?.MergeStrategies, Is.EqualTo(null));
+    }
+
 }

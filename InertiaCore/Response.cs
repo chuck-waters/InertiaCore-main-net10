@@ -48,6 +48,7 @@ public class Response : IActionResult
         };
 
         page.MergeProps = ResolveMergeProps(props);
+        page.MergeStrategies = ResolveMergeStrategies(props);
         page.Props["errors"] = GetErrors();
 
         SetPage(page);
@@ -196,6 +197,61 @@ public class Response : IActionResult
 
         // Return the result
         return mergeProps;
+    }
+
+    /// <summary>
+    /// Resolve merge strategies for properties that should be merged with custom strategies.
+    /// </summary>
+    private Dictionary<string, string[]>? ResolveMergeStrategies(Dictionary<string, object?> props)
+    {
+        // Parse the "RESET" header into a collection of keys to reset
+        var resetProps = new HashSet<string>(
+           _context!.HttpContext.Request.Headers[InertiaHeader.Reset]
+               .ToString()
+               .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+               .Select(s => s.Trim()),
+           StringComparer.OrdinalIgnoreCase
+       );
+
+        // Parse the "PARTIAL_ONLY" header into a collection of keys to include
+        var onlyProps = _context!.HttpContext.Request.Headers[InertiaHeader.PartialOnly]
+            .ToString()
+            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Parse the "PARTIAL_EXCEPT" header into a collection of keys to exclude
+        var exceptProps = new HashSet<string>(
+            _context!.HttpContext.Request.Headers[InertiaHeader.PartialExcept]
+                .ToString()
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim()),
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        var resolvedProps = props
+            .Select(kv => kv.Key.ToCamelCase()) // Convert property name to camelCase
+            .ToList();
+
+        // Filter the props that have merge strategies
+        var mergeStrategies = _props.Where(o => o.Value is Mergeable mergeable && mergeable.ShouldMerge() && mergeable.GetMergeStrategies() != null)
+            .Where(kv => !resetProps.Contains(kv.Key)) // Exclude reset keys
+            .Where(kv => onlyProps.Count == 0 || onlyProps.Contains(kv.Key)) // Include only specified keys if any
+            .Where(kv => !exceptProps.Contains(kv.Key)) // Exclude specified keys
+            .Where(kv => resolvedProps.Contains(kv.Key.ToCamelCase())) // Filter only the props that are in the resolved props
+            .ToDictionary(
+                kv => kv.Key.ToCamelCase(), // Convert property name to camelCase
+                kv => ((Mergeable)kv.Value!).GetMergeStrategies()!
+            );
+
+        if (mergeStrategies.Count == 0)
+        {
+            return null;
+        }
+
+        // Return the result
+        return mergeStrategies;
     }
 
     /// <summary>
