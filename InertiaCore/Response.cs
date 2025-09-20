@@ -218,4 +218,74 @@ public class Response : IActionResult
         _viewData = viewData;
         return this;
     }
+
+    /// <summary>
+    /// Add additional properties to the page.
+    /// </summary>
+    /// <param name="key">The property key, a dictionary of properties, or a ProvidesInertiaProperties object</param>
+    /// <param name="value">The property value (only used when key is a string)</param>
+    /// <returns>The Response instance for method chaining</returns>
+    public Response With(string key, object? value)
+    {
+        _props[key] = value;
+        return this;
+    }
+
+    /// <summary>
+    /// Add additional properties to the page from a dictionary.
+    /// </summary>
+    /// <param name="properties">Dictionary of properties to add</param>
+    /// <returns>The Response instance for method chaining</returns>
+    public Response With(IDictionary<string, object?> properties)
+    {
+        foreach (var kvp in properties)
+        {
+            _props[kvp.Key] = kvp.Value;
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Add additional properties to the page from a ProvidesInertiaProperties object.
+    /// </summary>
+    /// <param name="provider">The property provider</param>
+    /// <returns>The Response instance for method chaining</returns>
+    public Response With(ProvidesInertiaProperties provider)
+    {
+        // Generate a unique key for the provider
+        var providerKey = $"__provider_{Guid.NewGuid():N}";
+        _props[providerKey] = provider;
+        return this;
+    }
+
+    /// <summary>
+    /// Add additional properties to the page from an anonymous object.
+    /// </summary>
+    /// <param name="properties">Anonymous object with properties to add</param>
+    /// <returns>The Response instance for method chaining</returns>
+    public Response With(object properties)
+    {
+        if (properties == null) return this;
+
+        if (properties is IDictionary<string, object?> dict)
+        {
+            return With(dict);
+        }
+
+        if (properties is ProvidesInertiaProperties provider)
+        {
+            return With(provider);
+        }
+
+        // Convert anonymous object to dictionary
+        var props = properties.GetType().GetProperties()
+            .ToDictionary(p => p.Name, p => p.GetValue(properties));
+
+        foreach (var kvp in props)
+        {
+            _props[kvp.Key] = kvp.Value;
+        }
+
+        return this;
+    }
 }
