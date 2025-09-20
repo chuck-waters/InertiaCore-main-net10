@@ -159,6 +159,23 @@ public class Response : IActionResult
            StringComparer.OrdinalIgnoreCase
        );
 
+        // Parse the "PARTIAL_ONLY" header into a collection of keys to include
+        var onlyProps = _context!.HttpContext.Request.Headers[InertiaHeader.PartialOnly]
+            .ToString()
+            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Parse the "PARTIAL_EXCEPT" header into a collection of keys to exclude
+        var exceptProps = new HashSet<string>(
+            _context!.HttpContext.Request.Headers[InertiaHeader.PartialExcept]
+                .ToString()
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim()),
+            StringComparer.OrdinalIgnoreCase
+        );
+
         var resolvedProps = props
             .Select(kv => kv.Key.ToCamelCase()) // Convert property name to camelCase
             .ToList();
@@ -166,6 +183,8 @@ public class Response : IActionResult
         // Filter the props that are Mergeable and should be merged
         var mergeProps = _props.Where(o => o.Value is Mergeable mergeable && mergeable.ShouldMerge()) // Check if value is Mergeable and should merge
             .Where(kv => !resetProps.Contains(kv.Key)) // Exclude reset keys
+            .Where(kv => onlyProps.Count == 0 || onlyProps.Contains(kv.Key)) // Include only specified keys if any
+            .Where(kv => !exceptProps.Contains(kv.Key)) // Exclude specified keys
             .Select(kv => kv.Key.ToCamelCase()) // Convert property name to camelCase
             .Where(resolvedProps.Contains) // Filter only the props that are in the resolved props
             .ToList();
