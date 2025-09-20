@@ -29,6 +29,8 @@ public static class Inertia
 
     public static LocationResult Location(string url) => _factory.Location(url);
 
+    public static BackResult Back(string? fallbackUrl = null) => _factory.Back(fallbackUrl);
+
     public static void Share(string key, object? value) => _factory.Share(key, value);
 
     public static void Share(IDictionary<string, object?> data) => _factory.Share(data);

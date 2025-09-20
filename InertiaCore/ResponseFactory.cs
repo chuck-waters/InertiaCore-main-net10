@@ -20,6 +20,7 @@ internal interface IResponseFactory
     public void Version(Func<string?> version);
     public string? GetVersion();
     public LocationResult Location(string url);
+    public BackResult Back(string? fallbackUrl = null);
     public void Share(string key, object? value);
     public void Share(IDictionary<string, object?> data);
     public AlwaysProp Always(object? value);
@@ -108,6 +109,7 @@ internal class ResponseFactory : IResponseFactory
     };
 
     public LocationResult Location(string url) => new(url);
+    public BackResult Back(string? fallbackUrl = null) => new(fallbackUrl);
 
     public void Share(string key, object? value)
     {
