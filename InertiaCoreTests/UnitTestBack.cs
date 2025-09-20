@@ -104,9 +104,6 @@ public partial class Tests
         Assert.That(result, Is.Not.Null);
 
         await result.ExecuteResultAsync(context);
-
-        // The BackResult should use the referrer URL since the request is not an Inertia request
-        Assert.Pass("Back function correctly handled referrer redirect");
     }
 
     [Test]
@@ -151,9 +148,6 @@ public partial class Tests
         Assert.That(result, Is.Not.Null);
 
         await result.ExecuteResultAsync(context);
-
-        // The BackResult should use the fallback URL since there is no referrer
-        Assert.Pass("Back function correctly used fallback URL");
     }
 
     [Test]
@@ -197,9 +191,6 @@ public partial class Tests
         Assert.That(result, Is.Not.Null);
 
         await result.ExecuteResultAsync(context);
-
-        // The BackResult should use the default "/" URL since there is no referrer and no fallback provided
-        Assert.Pass("Back function correctly used default fallback");
     }
 
 }
