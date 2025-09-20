@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace InertiaCore.Extensions;
 
@@ -24,9 +25,52 @@ public static class Configure
             Inertia.Version(Vite.GetManifestHash);
         }
 
+        // Check if TempData services are available for error bag functionality
+        CheckTempDataAvailability(app);
+
         app.UseMiddleware<Middleware>();
 
         return app;
+    }
+
+    private static void CheckTempDataAvailability(IApplicationBuilder app)
+    {
+        // Skip warning in test environments
+        var environment = app.ApplicationServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        if (environment?.EnvironmentName == "Test" ||
+            (environment?.EnvironmentName != "Development" && IsTestEnvironment()))
+        {
+            return;
+        }
+
+        try
+        {
+            var tempDataFactory = app.ApplicationServices.GetService<ITempDataDictionaryFactory>();
+            if (tempDataFactory == null)
+            {
+                var logger = app.ApplicationServices.GetService<ILogger<IApplicationBuilder>>();
+                logger?.LogWarning("TempData services are not configured. Error bag functionality will be limited. " +
+                                   "Consider adding services.AddSession() and app.UseSession() to enable full error bag support.");
+            }
+        }
+        catch (Exception)
+        {
+            // If we can't check for TempData services, that's also a sign they might not be configured
+            var logger = app.ApplicationServices.GetService<ILogger<IApplicationBuilder>>();
+            logger?.LogWarning("Unable to verify TempData configuration. Error bag functionality may be limited. " +
+                               "Ensure services.AddSession() and app.UseSession() are configured for full error bag support.");
+        }
+    }
+
+    private static bool IsTestEnvironment()
+    {
+        // Check if we're running in a test context by looking for common test assemblies
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        return assemblies.Any(a =>
+            a.FullName?.Contains("nunit", StringComparison.OrdinalIgnoreCase) == true ||
+            a.FullName?.Contains("xunit", StringComparison.OrdinalIgnoreCase) == true ||
+            a.FullName?.Contains("mstest", StringComparison.OrdinalIgnoreCase) == true ||
+            a.FullName?.Contains("testhost", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     public static IServiceCollection AddInertia(this IServiceCollection services,

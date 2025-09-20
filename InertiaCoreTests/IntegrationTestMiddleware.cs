@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Moq;
 using NUnit.Framework;
 using System.Net;
 
@@ -188,5 +190,55 @@ public class IntegrationTestMiddleware
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(response.Headers.Location, Is.Null);
+    }
+
+    // Simple logger implementation that captures messages
+    public class TestLogger : ILogger<IApplicationBuilder>
+    {
+        public List<string> LoggedMessages { get; } = new List<string>();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            var message = formatter(state, exception);
+            LoggedMessages.Add(message);
+        }
+    }
+
+    [Test]
+    public void UseInertia_WithoutTempDataServices_LogsWarning()
+    {
+        // Arrange
+        var testLogger = new TestLogger();
+
+        var builder = new HostBuilder()
+            .ConfigureWebHost(webHost =>
+            {
+                webHost.UseTestServer();
+                webHost.UseEnvironment("Development"); // Use Development environment to bypass test suppression
+                webHost.ConfigureServices(services =>
+                {
+                    services.AddInertia();
+                    services.AddRouting(); // Minimal routing services
+                    // Intentionally NOT adding AddMvc() or AddSession() to trigger the warning
+                    // Replace the default logger with our test logger
+                    services.AddSingleton<ILogger<IApplicationBuilder>>(testLogger);
+                });
+                webHost.Configure(app =>
+                {
+                    app.UseInertia(); // This should trigger the warning
+                });
+            });
+
+        // Act
+        var host = builder.Start();
+
+        // Assert
+        Assert.That(testLogger.LoggedMessages.Any(msg => msg.Contains("TempData services are not configured")), Is.True,
+            $"Expected warning message not found. Logged messages: {string.Join(", ", testLogger.LoggedMessages)}");
+
+        host.Dispose();
     }
 }
