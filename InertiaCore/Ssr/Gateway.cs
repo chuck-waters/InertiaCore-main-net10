@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 
 namespace InertiaCore.Ssr;
 
-internal interface IGateway
+internal interface IGateway : IHasHealthCheck
 {
     public Task<SsrResponse?> Dispatch(object model, string url);
     public bool ShouldDispatch();
@@ -74,5 +74,27 @@ internal class Gateway : IGateway
             return Path.Combine(_environment.ContentRootPath, path[2..]);
         }
         return Path.IsPathRooted(path) ? path : Path.Combine(_environment.ContentRootPath, path);
+    }
+
+    public async Task<bool> IsHealthy()
+    {
+        try
+        {
+            var healthUrl = GetUrl("/health");
+            var client = _httpClientFactory.CreateClient();
+
+            using var response = await client.GetAsync(healthUrl);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string GetUrl(string endpoint)
+    {
+        var baseUrl = _options.Value.SsrUrl.TrimEnd('/');
+        return $"{baseUrl}{endpoint}";
     }
 }
