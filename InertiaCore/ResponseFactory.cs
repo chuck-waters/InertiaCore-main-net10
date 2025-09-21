@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Hosting;
 
 namespace InertiaCore;
 
@@ -53,17 +54,23 @@ internal class ResponseFactory : IResponseFactory
     private readonly IHttpContextAccessor _contextAccessor;
     private readonly IGateway _gateway;
     private readonly IOptions<InertiaOptions> _options;
+    private readonly IWebHostEnvironment _environment;
 
     private object? _version;
     private bool _clearHistory;
     private bool? _encryptHistory;
     private Func<ActionContext, string>? _urlResolver;
 
-    public ResponseFactory(IHttpContextAccessor contextAccessor, IGateway gateway, IOptions<InertiaOptions> options) =>
-        (_contextAccessor, _gateway, _options) = (contextAccessor, gateway, options);
+    public ResponseFactory(IHttpContextAccessor contextAccessor, IGateway gateway, IOptions<InertiaOptions> options, IWebHostEnvironment environment) =>
+        (_contextAccessor, _gateway, _options, _environment) = (contextAccessor, gateway, options, environment);
 
     public Response Render(string component, object? props = null)
     {
+        if (_options.Value.EnsurePagesExist)
+        {
+            FindComponentOrFail(component);
+        }
+
         props ??= new { };
         var dictProps = props switch
         {

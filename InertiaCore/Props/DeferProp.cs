@@ -6,6 +6,7 @@ public class DeferProp : InvokableProp, IIgnoresFirstLoad, Mergeable
 {
     public bool merge { get; set; }
     protected readonly string _group = "default";
+    public string[]? mergeStrategies { get; set; }
 
     public DeferProp(object? value, string group) : base(value)
     {
@@ -33,4 +34,6 @@ public class DeferProp : InvokableProp, IIgnoresFirstLoad, Mergeable
     {
         return _group;
     }
+
+    public string[]? GetMergeStrategies() => mergeStrategies;
 }

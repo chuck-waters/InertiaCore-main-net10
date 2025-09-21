@@ -25,7 +25,7 @@ public class Response : IActionResult
     private IDictionary<string, object>? _viewData;
 
     internal Response(string component, Dictionary<string, object?> props, string rootView, string? version, bool encryptHistory, Func<ActionContext, string>? urlResolver = null)
-        => (_component, _props, _rootView, _version, _encryptHistory) = (component, props, rootView, version, encryptHistory, urlResolver);
+        => (_component, _props, _rootView, _version, _encryptHistory, _urlResolver) = (component, props, rootView, version, encryptHistory, urlResolver);
 
     public async Task ExecuteResultAsync(ActionContext context)
     {
