@@ -35,6 +35,8 @@ public static class Inertia
 
     public static void Share(IDictionary<string, object?> data) => _factory.Share(data);
 
+    public static void FlushShared() => _factory.FlushShared();
+
     public static AlwaysProp Always(string value) => _factory.Always(value);
 
     public static AlwaysProp Always(Func<string> callback) => _factory.Always(callback);
