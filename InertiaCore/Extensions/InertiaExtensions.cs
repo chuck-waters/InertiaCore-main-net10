@@ -107,4 +107,62 @@ internal static class InertiaExtensions
         );
         tempData.SetValidationErrors(errors, bagName);
     }
+
+    /// <summary>
+    /// Retrieve and clear validation errors from TempData, supporting error bags.
+    /// </summary>
+    public static Dictionary<string, string> GetAndClearValidationErrors(this ITempDataDictionary tempData, HttpRequest request)
+    {
+        var errors = new Dictionary<string, string>();
+
+        if (!tempData.ContainsKey("__ValidationErrors"))
+            return errors;
+
+        var storedErrors = tempData["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
+        if (storedErrors == null)
+            return errors;
+
+        // Check if there's a specific error bag in the request header
+        var errorBag = "default";
+        if (request.Headers.ContainsKey(InertiaHeader.ErrorBag))
+        {
+            errorBag = request.Headers[InertiaHeader.ErrorBag].ToString();
+        }
+
+        // If there's only the default bag and no specific bag requested, return the default bag directly
+        if (storedErrors.Count == 1 && storedErrors.ContainsKey("default") && errorBag == "default")
+        {
+            foreach (var kvp in storedErrors["default"])
+            {
+                errors[kvp.Key] = kvp.Value;
+            }
+        }
+        // If there are multiple bags or a specific bag is requested, return the named bag
+        else if (storedErrors.ContainsKey(errorBag))
+        {
+            foreach (var kvp in storedErrors[errorBag])
+            {
+                errors[kvp.Key] = kvp.Value;
+            }
+        }
+        // If no specific bag and multiple bags exist, return all bags
+        else if (errorBag == "default" && storedErrors.Count > 1)
+        {
+            // Return all error bags as nested structure
+            // This will be handled differently but for now just return default or first available
+            var firstBag = storedErrors.Values.FirstOrDefault();
+            if (firstBag != null)
+            {
+                foreach (var kvp in firstBag)
+                {
+                    errors[kvp.Key] = kvp.Value;
+                }
+            }
+        }
+
+        // Clear the temp data after reading (one-time use)
+        tempData.Remove("__ValidationErrors");
+
+        return errors;
+    }
 }
