@@ -40,12 +40,7 @@ internal class Gateway : IGateway
 
     public bool ShouldDispatch()
     {
-        return ShouldDispatchWithoutBundle() || BundleExists();
-    }
-
-    private bool ShouldDispatchWithoutBundle()
-    {
-        return _options.Value.SsrDispatchWithoutBundle;
+        return !_options.Value.SsrEnsureBundleExists || BundleExists();
     }
 
     private bool BundleExists()

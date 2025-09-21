@@ -9,7 +9,7 @@ namespace InertiaCoreTests;
 public partial class Tests
 {
     [Test]
-    [Description("Test SSR dispatch should not dispatch by default when no bundle exists")]
+    [Description("Test SSR dispatch should not dispatch by default when no bundle exists and bundle is required")]
     public void TestSsrDispatchDefaultBehaviorWithoutBundle()
     {
         var httpClientFactory = new Mock<IHttpClientFactory>();
@@ -17,7 +17,7 @@ public partial class Tests
         environment.SetupGet(x => x.ContentRootPath).Returns(Path.GetTempPath());
 
         var options = new Mock<IOptions<InertiaOptions>>();
-        options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrDispatchWithoutBundle = false });
+        options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrEnsureBundleExists = true });
 
         var gateway = new Gateway(httpClientFactory.Object, options.Object, environment.Object);
 
@@ -25,7 +25,7 @@ public partial class Tests
     }
 
     [Test]
-    [Description("Test SSR dispatch should dispatch when SsrDispatchWithoutBundle is enabled")]
+    [Description("Test SSR dispatch should dispatch when SsrEnsureBundleExists is disabled")]
     public void TestSsrDispatchWithoutBundleEnabled()
     {
         var httpClientFactory = new Mock<IHttpClientFactory>();
@@ -33,7 +33,7 @@ public partial class Tests
         environment.SetupGet(x => x.ContentRootPath).Returns(Path.GetTempPath());
 
         var options = new Mock<IOptions<InertiaOptions>>();
-        options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrDispatchWithoutBundle = true });
+        options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrEnsureBundleExists = false });
 
         var gateway = new Gateway(httpClientFactory.Object, options.Object, environment.Object);
 
@@ -58,7 +58,7 @@ public partial class Tests
             environment.SetupGet(x => x.ContentRootPath).Returns(tempDir);
 
             var options = new Mock<IOptions<InertiaOptions>>();
-            options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrDispatchWithoutBundle = false });
+            options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrEnsureBundleExists = true });
 
             var gateway = new Gateway(httpClientFactory.Object, options.Object, environment.Object);
 
@@ -74,7 +74,7 @@ public partial class Tests
     }
 
     [Test]
-    [Description("Test SSR dispatch should dispatch when either bundle exists or dispatch without bundle is enabled")]
+    [Description("Test SSR dispatch should dispatch when either bundle exists or SsrEnsureBundleExists is disabled")]
     public void TestSsrDispatchWithBundleAndDispatchWithoutBundleEnabled()
     {
         var tempDir = Path.GetTempPath();
@@ -91,7 +91,7 @@ public partial class Tests
             environment.SetupGet(x => x.ContentRootPath).Returns(tempDir);
 
             var options = new Mock<IOptions<InertiaOptions>>();
-            options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrDispatchWithoutBundle = true });
+            options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrEnsureBundleExists = false });
 
             var gateway = new Gateway(httpClientFactory.Object, options.Object, environment.Object);
 
@@ -124,7 +124,7 @@ public partial class Tests
             environment.SetupGet(x => x.ContentRootPath).Returns(tempDir);
 
             var options = new Mock<IOptions<InertiaOptions>>();
-            options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrDispatchWithoutBundle = false });
+            options.SetupGet(x => x.Value).Returns(new InertiaOptions { SsrEnsureBundleExists = true });
 
             var gateway = new Gateway(httpClientFactory.Object, options.Object, environment.Object);
 
