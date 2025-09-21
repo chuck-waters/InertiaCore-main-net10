@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using NUnit.Framework;
+using System.Text.Json;
 using System.Net;
 
 namespace InertiaCoreTests;
@@ -83,7 +84,9 @@ public class UnitTestErrorBags
         _tempDataMock.Object.SetValidationErrors(errors, "login");
 
         // Assert
-        var storedErrors = tempDataDict["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
+        var storedJson = tempDataDict["__ValidationErrors"] as string;
+        Assert.That(storedJson, Is.Not.Null);
+        var storedErrors = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(storedJson);
         Assert.That(storedErrors, Is.Not.Null);
         Assert.That(storedErrors.ContainsKey("login"), Is.True);
         Assert.That(storedErrors["login"]["email"], Is.EqualTo("Email is required"));
@@ -106,7 +109,9 @@ public class UnitTestErrorBags
         _tempDataMock.Object.SetValidationErrors(modelState, "registration");
 
         // Assert
-        var storedErrors = tempDataDict["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
+        var storedJson = tempDataDict["__ValidationErrors"] as string;
+        Assert.That(storedJson, Is.Not.Null);
+        var storedErrors = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(storedJson);
         Assert.That(storedErrors, Is.Not.Null);
         Assert.That(storedErrors.ContainsKey("registration"), Is.True);
         Assert.That(storedErrors["registration"]["Email"], Is.EqualTo("Email is required"));
