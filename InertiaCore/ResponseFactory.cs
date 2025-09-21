@@ -222,4 +222,42 @@ internal class ResponseFactory : IResponseFactory
     public MergeProp Merge(Func<Task<object?>> callback, string[]? strategies) => new(callback, strategies);
     public OptionalProp Optional(Func<object?> callback) => new(callback);
     public OptionalProp Optional(Func<Task<object?>> callback) => new(callback);
+
+    private void FindComponentOrFail(string component)
+    {
+        var exists = FindComponent(component);
+        if (!exists)
+        {
+            throw new ComponentNotFoundException(component);
+        }
+    }
+
+    private bool FindComponent(string component)
+    {
+        foreach (var path in _options.Value.PagePaths)
+        {
+            var resolvedPath = ResolvePath(path);
+            if (string.IsNullOrEmpty(resolvedPath)) continue;
+
+            foreach (var extension in _options.Value.PageExtensions)
+            {
+                var normalizedComponent = component.Replace('/', Path.DirectorySeparatorChar);
+                var fullPath = Path.Combine(resolvedPath, normalizedComponent + extension);
+                if (File.Exists(fullPath))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private string? ResolvePath(string path)
+    {
+        if (path.StartsWith("~/"))
+        {
+            return Path.Combine(_environment.ContentRootPath, path[2..]);
+        }
+        return Path.IsPathRooted(path) ? path : Path.Combine(_environment.ContentRootPath, path);
+    }
 }
