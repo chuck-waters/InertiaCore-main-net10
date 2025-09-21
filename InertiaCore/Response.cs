@@ -238,6 +238,7 @@ public class Response : IActionResult
     /// <summary>
     /// Resolves and prepares validation errors in such a way that they are easier to use client-side.
     /// Handles error bags from TempData and formats them according to Inertia specifications.
+    /// Matches Laravel's error bag resolution logic.
     /// </summary>
     private object ResolveValidationErrors()
     {
@@ -247,7 +248,7 @@ public class Response : IActionResult
         if (tempData == null || !tempData.ContainsKey("__ValidationErrors"))
         {
             // Fall back to current ModelState errors
-            var modelStateErrors = GetErrors();
+            var modelStateErrors = GetCurrentModelStateErrors();
             if (modelStateErrors.Count == 0)
             {
                 return new Dictionary<string, string>(0);
@@ -263,17 +264,36 @@ public class Response : IActionResult
             return modelStateErrors;
         }
 
-        // Process TempData validation errors (stored as error bags)
-        var errorBags = tempData["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
-        if (errorBags == null || errorBags.Count == 0)
+        // Deserialize error bags from TempData
+        Dictionary<string, Dictionary<string, string>> errorBags;
+        if (tempData["__ValidationErrors"] is string jsonString && !string.IsNullOrEmpty(jsonString))
+        {
+            try
+            {
+                errorBags = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(jsonString) ?? new Dictionary<string, Dictionary<string, string>>();
+            }
+            catch (JsonException)
+            {
+                return new Dictionary<string, string>(0);
+            }
+        }
+        else
         {
             return new Dictionary<string, string>(0);
         }
 
-        // Convert to the expected format (first error message only)
+        if (errorBags.Count == 0)
+        {
+            return new Dictionary<string, string>(0);
+        }
+
+        // Clear the temp data after reading (one-time use)
+        tempData.Remove("__ValidationErrors");
+
+        // Convert to camelCase for client-side consistency
         var processedBags = errorBags.ToDictionary(
             bag => bag.Key,
-            bag => (object)bag.Value.ToDictionary(
+            bag => bag.Value.ToDictionary(
                 error => error.Key.ToCamelCase(),
                 error => error.Value
             )
@@ -281,21 +301,38 @@ public class Response : IActionResult
 
         var requestedErrorBag = _context.HttpContext.Request.Headers[InertiaHeader.ErrorBag].ToString();
 
-        // If a specific error bag is requested and default exists
-        if (!string.IsNullOrEmpty(requestedErrorBag) && processedBags.ContainsKey("default"))
+        // Laravel's logic: If there's only default bag AND a specific bag is requested
+        if (processedBags.ContainsKey("default") && !string.IsNullOrEmpty(requestedErrorBag))
         {
             return new Dictionary<string, object> { [requestedErrorBag] = processedBags["default"] };
         }
 
-        // If only default bag exists, return its contents directly
+        // Laravel's logic: If there's only default bag, return its contents directly
         if (processedBags.ContainsKey("default") && processedBags.Count == 1)
         {
             return processedBags["default"];
         }
 
-        // Return all bags
-        return processedBags;
+        // Laravel's logic: Return all bags
+        return processedBags.ToDictionary(
+            bag => bag.Key,
+            bag => (object)bag.Value
+        );
     }
+
+    /// <summary>
+    /// Get only current ModelState errors (not TempData)
+    /// Matches the original GetErrors() logic exactly
+    /// </summary>
+    private Dictionary<string, string> GetCurrentModelStateErrors()
+    {
+        if (!_context!.ModelState.IsValid)
+            return _context!.ModelState.ToDictionary(o => o.Key.ToCamelCase(),
+                 o => o.Value?.Errors.FirstOrDefault()?.ErrorMessage ?? "");
+
+        return new Dictionary<string, string>(0);
+    }
+
 
     protected internal void SetContext(ActionContext context) => _context = context;
 
