@@ -20,7 +20,7 @@ internal interface IResponseFactory
     public void Version(Func<string?> version);
     public string? GetVersion();
     public LocationResult Location(string url);
-    public BackResult Back(string? fallbackUrl = null);
+    public BackResult Back(string? fallbackUrl = null, HttpStatusCode statusCode = HttpStatusCode.SeeOther);
     public void Share(string key, object? value);
     public void Share(IDictionary<string, object?> data);
     public void FlushShared();
@@ -110,7 +110,7 @@ internal class ResponseFactory : IResponseFactory
     };
 
     public LocationResult Location(string url) => new(url);
-    public BackResult Back(string? fallbackUrl = null) => new(fallbackUrl);
+    public BackResult Back(string? fallbackUrl = null, HttpStatusCode statusCode = HttpStatusCode.SeeOther) => new(fallbackUrl, statusCode);
 
     public void Share(string key, object? value)
     {
