@@ -11,6 +11,11 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using System.Net;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using System.Text.Json;
+using System.Text;
 
 namespace InertiaCoreTests;
 
@@ -32,11 +37,14 @@ public class IntegrationTestMiddleware
                 {
                     services.AddInertia();
                     services.AddMvc();
+                    services.AddDistributedMemoryCache(); // Required for TempData
+                    services.AddSession(); // Required for TempData
                 });
                 webHost.Configure(app =>
                 {
                     // This calls UseInertia which should register the middleware
                     app.UseInertia();
+                    app.UseSession(); // Enable session middleware for TempData
                     app.UseRouting();
                     app.UseEndpoints(endpoints =>
                     {
@@ -197,7 +205,7 @@ public class IntegrationTestMiddleware
     {
         public List<string> LoggedMessages { get; } = new List<string>();
 
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null!;
         public bool IsEnabled(LogLevel logLevel) => true;
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
@@ -241,4 +249,5 @@ public class IntegrationTestMiddleware
 
         host.Dispose();
     }
+
 }
