@@ -60,4 +60,9 @@ public static class Inertia
     public static MergeProp Merge(Func<object?> callback) => _factory.Merge(callback);
 
     public static MergeProp Merge(Func<Task<object?>> callback) => _factory.Merge(callback);
+
+     public static void ClearHistory(bool clear = true) => _factory.ClearHistory(clear);
+
+    public static void EncryptHistory(bool encrypt = true) => _factory.EncryptHistory(encrypt);
+
 }

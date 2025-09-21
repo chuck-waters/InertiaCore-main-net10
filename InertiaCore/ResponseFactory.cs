@@ -63,7 +63,7 @@ internal class ResponseFactory : IResponseFactory
                 .ToDictionary(o => o.Name, o => o.GetValue(props))
         };
 
-        return new Response(component, dictProps, _options.Value.RootView, GetVersion(), _encryptHistory ?? _options.Value.EncryptHistory, _clearHistory);
+        return new Response(component, dictProps, _options.Value.RootView, GetVersion(), _encryptHistory ?? _options.Value.EncryptHistory);
     }
 
     public async Task<IHtmlContent> Head(dynamic model)
@@ -156,7 +156,51 @@ internal class ResponseFactory : IResponseFactory
         }
     }
 
-    public void ClearHistory(bool clear = true) => _clearHistory = clear;
+    public void FlushShared()
+    {
+        var context = _contextAccessor.HttpContext!;
+
+        var sharedData = context.Features.Get<InertiaSharedProps>();
+        if (sharedData != null)
+        {
+            sharedData.Clear();
+        }
+    }
+
+    public void ClearHistory(bool clear = true)
+    {
+        var context = _contextAccessor.HttpContext;
+
+        // Try to use session first (preferred for production to survive redirects)
+        if (context?.Session != null)
+        {
+            if (clear)
+            {
+                context.Session.SetString("inertia.clear_history", "true");
+            }
+            else
+            {
+                context.Session.Remove("inertia.clear_history");
+            }
+        }
+        else if (context?.Features != null)
+        {
+            // Fallback for test scenarios: store in request features
+            if (clear)
+            {
+                context.Features.Set<bool>(true);
+                context.Items["inertia.clear_history"] = true;
+            }
+            else
+            {
+                context.Features.Set<bool>(false);
+                context.Items.Remove("inertia.clear_history");
+            }
+        }
+
+        // Always set the instance variable as fallback
+        _clearHistory = clear;
+    }
 
     public void EncryptHistory(bool encrypt = true) => _encryptHistory = encrypt;
 
