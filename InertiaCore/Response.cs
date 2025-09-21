@@ -459,9 +459,25 @@ public class Response : IActionResult
             return modelStateErrors;
         }
 
-        // Process TempData validation errors (stored as error bags)
-        var errorBags = tempData["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
-        if (errorBags == null || errorBags.Count == 0)
+        // Process TempData validation errors (stored as JSON)
+        Dictionary<string, Dictionary<string, string>> errorBags;
+        if (tempData["__ValidationErrors"] is string jsonString && !string.IsNullOrEmpty(jsonString))
+        {
+            try
+            {
+                errorBags = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(jsonString) ?? new Dictionary<string, Dictionary<string, string>>();
+            }
+            catch (JsonException)
+            {
+                return new Dictionary<string, string>(0);
+            }
+        }
+        else
+        {
+            return new Dictionary<string, string>(0);
+        }
+
+        if (errorBags.Count == 0)
         {
             return new Dictionary<string, string>(0);
         }
