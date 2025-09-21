@@ -3,6 +3,9 @@ using InertiaCore.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 
 namespace InertiaCore.Extensions;
@@ -62,5 +65,46 @@ internal static class InertiaExtensions
             sb.Append(t.ToString("x2"));
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Gets the TempData dictionary for the current HTTP context.
+    /// </summary>
+    internal static ITempDataDictionary? GetTempData(this HttpContext context)
+    {
+        try
+        {
+            var tempDataFactory = context.RequestServices?.GetRequiredService<ITempDataDictionaryFactory>();
+            return tempDataFactory?.GetTempData(context);
+        }
+        catch (InvalidOperationException)
+        {
+            // Service provider not available, return null
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Sets validation errors in TempData for the specified error bag.
+    /// </summary>
+    public static void SetValidationErrors(this ITempDataDictionary tempData, Dictionary<string, string> errors, string bagName = "default")
+    {
+        var errorBags = tempData["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>
+                       ?? new Dictionary<string, Dictionary<string, string>>();
+
+        errorBags[bagName] = errors;
+        tempData["__ValidationErrors"] = errorBags;
+    }
+
+    /// <summary>
+    /// Sets validation errors in TempData from ModelState for the specified error bag.
+    /// </summary>
+    public static void SetValidationErrors(this ITempDataDictionary tempData, ModelStateDictionary modelState, string bagName = "default")
+    {
+        var errors = modelState.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value?.Errors.FirstOrDefault()?.ErrorMessage ?? ""
+        );
+        tempData.SetValidationErrors(errors, bagName);
     }
 }

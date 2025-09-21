@@ -13,6 +13,8 @@ public static class Inertia
 
     internal static void UseFactory(IResponseFactory factory) => _factory = factory;
 
+    internal static void ResetFactory() => _factory = default!;
+
     public static Response Render(string component, object? props = null) => _factory.Render(component, props);
 
     public static Task<IHtmlContent> Head(dynamic model) => _factory.Head(model);
@@ -32,6 +34,8 @@ public static class Inertia
     public static void Share(string key, object? value) => _factory.Share(key, value);
 
     public static void Share(IDictionary<string, object?> data) => _factory.Share(data);
+
+    public static void FlushShared() => _factory.FlushShared();
 
     public static AlwaysProp Always(string value) => _factory.Always(value);
 

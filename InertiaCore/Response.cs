@@ -49,7 +49,7 @@ public class Response : IActionResult
 
         page.MergeProps = ResolveMergeProps(props);
         page.DeferredProps = ResolveDeferredProps(props);
-        page.Props["errors"] = GetErrors();
+        page.Props["errors"] = ResolveValidationErrors();
 
         SetPage(page);
     }
@@ -277,6 +277,68 @@ public class Response : IActionResult
                 o => o.Value?.Errors.FirstOrDefault()?.ErrorMessage ?? "");
 
         return new Dictionary<string, string>(0);
+    }
+
+    /// <summary>
+    /// Resolves and prepares validation errors in such a way that they are easier to use client-side.
+    /// Handles error bags from TempData and formats them according to Inertia specifications.
+    /// </summary>
+    private object ResolveValidationErrors()
+    {
+        var tempData = _context!.HttpContext.GetTempData();
+
+        // Check if there are any validation errors in TempData
+        if (tempData == null || !tempData.ContainsKey("__ValidationErrors"))
+        {
+            // Fall back to current ModelState errors
+            var modelStateErrors = GetErrors();
+            if (modelStateErrors.Count == 0)
+            {
+                return new Dictionary<string, string>(0);
+            }
+
+            // Check for error bag header
+            var errorBagHeader = _context.HttpContext.Request.Headers[InertiaHeader.ErrorBag].ToString();
+            if (!string.IsNullOrEmpty(errorBagHeader))
+            {
+                return new Dictionary<string, object> { [errorBagHeader] = modelStateErrors };
+            }
+
+            return modelStateErrors;
+        }
+
+        // Process TempData validation errors (stored as error bags)
+        var errorBags = tempData["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
+        if (errorBags == null || errorBags.Count == 0)
+        {
+            return new Dictionary<string, string>(0);
+        }
+
+        // Convert to the expected format (first error message only)
+        var processedBags = errorBags.ToDictionary(
+            bag => bag.Key,
+            bag => (object)bag.Value.ToDictionary(
+                error => error.Key.ToCamelCase(),
+                error => error.Value
+            )
+        );
+
+        var requestedErrorBag = _context.HttpContext.Request.Headers[InertiaHeader.ErrorBag].ToString();
+
+        // If a specific error bag is requested and default exists
+        if (!string.IsNullOrEmpty(requestedErrorBag) && processedBags.ContainsKey("default"))
+        {
+            return new Dictionary<string, object> { [requestedErrorBag] = processedBags["default"] };
+        }
+
+        // If only default bag exists, return its contents directly
+        if (processedBags.ContainsKey("default") && processedBags.Count == 1)
+        {
+            return processedBags["default"];
+        }
+
+        // Return all bags
+        return processedBags;
     }
 
     protected internal void SetContext(ActionContext context) => _context = context;
