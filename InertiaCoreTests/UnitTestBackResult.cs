@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
+using System.Text.Json;
 
 namespace InertiaCoreTests;
 
@@ -106,7 +107,9 @@ public class UnitTestBackResult
 
         // Assert
         Assert.That(tempDataDict.ContainsKey("__ValidationErrors"), Is.True);
-        var storedErrors = tempDataDict["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
+        var storedJson = tempDataDict["__ValidationErrors"] as string;
+        Assert.That(storedJson, Is.Not.Null);
+        var storedErrors = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(storedJson);
         Assert.That(storedErrors, Is.Not.Null);
         Assert.That(storedErrors.ContainsKey("default"), Is.True);
         Assert.That(storedErrors["default"]["email"], Is.EqualTo("Email is required"));

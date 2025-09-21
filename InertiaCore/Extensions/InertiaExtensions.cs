@@ -89,11 +89,26 @@ internal static class InertiaExtensions
     /// </summary>
     public static void SetValidationErrors(this ITempDataDictionary tempData, Dictionary<string, string> errors, string bagName = "default")
     {
-        var errorBags = tempData["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>
-                       ?? new Dictionary<string, Dictionary<string, string>>();
+        // Deserialize existing error bags from JSON
+        var errorBags = new Dictionary<string, Dictionary<string, string>>();
+        if (tempData["__ValidationErrors"] is string existingJson && !string.IsNullOrEmpty(existingJson))
+        {
+            try
+            {
+                errorBags = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(existingJson)
+                           ?? new Dictionary<string, Dictionary<string, string>>();
+            }
+            catch (JsonException)
+            {
+                // If deserialization fails, start fresh
+                errorBags = new Dictionary<string, Dictionary<string, string>>();
+            }
+        }
 
         errorBags[bagName] = errors;
-        tempData["__ValidationErrors"] = errorBags;
+
+        // Serialize back to JSON for storage
+        tempData["__ValidationErrors"] = JsonSerializer.Serialize(errorBags);
     }
 
     /// <summary>
@@ -118,9 +133,24 @@ internal static class InertiaExtensions
         if (!tempData.ContainsKey("__ValidationErrors"))
             return errors;
 
-        var storedErrors = tempData["__ValidationErrors"] as Dictionary<string, Dictionary<string, string>>;
-        if (storedErrors == null)
+        // Deserialize from JSON
+        Dictionary<string, Dictionary<string, string>> storedErrors;
+        if (tempData["__ValidationErrors"] is string jsonString && !string.IsNullOrEmpty(jsonString))
+        {
+            try
+            {
+                storedErrors = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(jsonString) ?? new Dictionary<string, Dictionary<string, string>>();
+            }
+            catch (JsonException)
+            {
+                // If deserialization fails, return empty
+                return errors;
+            }
+        }
+        else
+        {
             return errors;
+        }
 
         // Check if there's a specific error bag in the request header
         var errorBag = "default";
