@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Hosting;
 using Moq;
 using NUnit.Framework;
 using System.Net;
@@ -42,11 +43,14 @@ public class UnitTestMiddleware
         // Set up Inertia factory
         var contextAccessor = new Mock<IHttpContextAccessor>();
         var httpClientFactory = new Mock<IHttpClientFactory>();
-        var gateway = new Gateway(httpClientFactory.Object);
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(x => x.ContentRootPath).Returns(Path.GetTempPath());
+
         var options = new Mock<IOptions<InertiaOptions>>();
         options.SetupGet(x => x.Value).Returns(new InertiaOptions());
 
-        _factory = new ResponseFactory(contextAccessor.Object, gateway, options.Object);
+        var gateway = new Gateway(httpClientFactory.Object, options.Object, environment.Object);
+        _factory = new ResponseFactory(contextAccessor.Object, gateway, options.Object, environment.Object);
         Inertia.UseFactory(_factory);
 
         _middleware = new Middleware(_nextMock.Object);

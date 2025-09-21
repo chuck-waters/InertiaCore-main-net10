@@ -58,10 +58,10 @@ public class UnitTestErrorBags
         var constructor = responseType.GetConstructor(
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
             null,
-            new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string) },
+            new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string), typeof(bool), typeof(Func<ActionContext, string>) },
             null);
 
-        _response = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null! });
+        _response = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null!, false, null! });
         _response.SetContext(_actionContext);
     }
 
@@ -134,9 +134,9 @@ public class UnitTestErrorBags
             var constructor = responseType.GetConstructor(
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
-                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string) },
+                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string), typeof(bool), typeof(Func<ActionContext, string>) },
                 null);
-            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null! });
+            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null!, false, null! });
             testResponse.SetContext(testActionContext);
         });
     }
@@ -169,9 +169,9 @@ public class UnitTestErrorBags
             var constructor = responseType.GetConstructor(
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
-                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string) },
+                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string), typeof(bool), typeof(Func<ActionContext, string>) },
                 null);
-            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null! });
+            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null!, false, null! });
             testResponse.SetContext(_actionContext);
         });
     }
@@ -201,9 +201,9 @@ public class UnitTestErrorBags
             var constructor = responseType.GetConstructor(
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
-                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string) },
+                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string), typeof(bool), typeof(Func<ActionContext, string>) },
                 null);
-            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null! });
+            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null!, false, null! });
             testResponse.SetContext(_actionContext);
         });
     }
@@ -236,9 +236,9 @@ public class UnitTestErrorBags
             var constructor = responseType.GetConstructor(
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
-                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string) },
+                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string), typeof(bool), typeof(Func<ActionContext, string>) },
                 null);
-            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null! });
+            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null!, false, null! });
             testResponse.SetContext(_actionContext);
         });
     }
@@ -286,9 +286,9 @@ public class UnitTestErrorBags
             var constructor = responseType.GetConstructor(
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
-                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string) },
+                new[] { typeof(string), typeof(Dictionary<string, object?>), typeof(string), typeof(string), typeof(bool), typeof(Func<ActionContext, string>) },
                 null);
-            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null! });
+            var testResponse = (Response)constructor!.Invoke(new object[] { "TestComponent", new Dictionary<string, object?>(), "app", null!, false, null! });
             testResponse.SetContext(testActionContext);
         });
     }

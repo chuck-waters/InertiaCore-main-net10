@@ -4,6 +4,7 @@ using InertiaCore.Ssr;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Hosting;
 using Moq;
 using NUnit.Framework;
 
@@ -17,10 +18,13 @@ public class UnitTestHistoryEncryption
     {
         // Set up a factory for testing
         var options = new InertiaOptions();
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(x => x.ContentRootPath).Returns(Path.GetTempPath());
         var factory = new ResponseFactory(
             new Mock<IHttpContextAccessor>().Object,
             new Mock<IGateway>().Object,
-            Options.Create(options)
+            Options.Create(options),
+            environment.Object
         );
 
         Inertia.UseFactory(factory);
