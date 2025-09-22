@@ -5,6 +5,7 @@ namespace InertiaCore.Props;
 public class DeferProp : InvokableProp, IIgnoresFirstLoad, Mergeable
 {
     public bool merge { get; set; }
+    public bool deepMerge { get; set; } = false;
     protected readonly string _group = "default";
     public string[]? matchOn { get; set; }
 
@@ -25,6 +26,15 @@ public class DeferProp : InvokableProp, IIgnoresFirstLoad, Mergeable
 
     public Mergeable Merge()
     {
+        merge = true;
+
+        return this;
+    }
+
+    public Mergeable DeepMerge()
+    {
+        deepMerge = true;
+
         merge = true;
 
         return this;
