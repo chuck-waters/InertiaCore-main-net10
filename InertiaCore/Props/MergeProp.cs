@@ -5,6 +5,7 @@ namespace InertiaCore.Utils;
 public class MergeProp : InvokableProp, Mergeable
 {
     public bool merge { get; set; } = true;
+    public bool deepMerge { get; set; } = false;
     public string[]? matchOn { get; set; }
 
     public MergeProp(object? value) : base(value)

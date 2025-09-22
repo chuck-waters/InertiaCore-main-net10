@@ -17,7 +17,9 @@ public interface Mergeable
     {
         deepMerge = true;
 
-        return this->Merge();
+        merge = true;
+
+        return this;
     }
 
     public Mergeable MatchesOn(params string[] keys)
