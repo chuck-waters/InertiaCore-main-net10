@@ -1,4 +1,5 @@
 using InertiaCore.Models;
+using InertiaCore.Utils;
 using Microsoft.AspNetCore.Http;
 
 namespace InertiaCoreTests;
@@ -241,14 +242,14 @@ public partial class Tests
     }
 
     [Test]
-    [Description("Test if deep merge props work with strategies.")]
-    public async Task TestDeepMergeWithStrategies()
+    [Description("Test if deep merge props work with match on keys.")]
+    public async Task TestDeepMergeWithMatchOn()
     {
         var response = _factory.Render("Test/Page", new
         {
             Test = "Test",
-            TestDeepMerge1 = _factory.DeepMerge("Deep Merge1", "deep"),
-            TestDeepMerge2 = _factory.DeepMerge(() => "Deep Merge2", new[] { "shallow", "replace" }),
+            TestDeepMerge1 = ((Mergeable)_factory.DeepMerge("Deep Merge1")).MatchesOn("deep"),
+            TestDeepMerge2 = ((Mergeable)_factory.DeepMerge(() => "Deep Merge2")).MatchesOn("shallow", "replace"),
             TestNormal = "Normal"
         });
 
@@ -269,8 +270,8 @@ public partial class Tests
         }));
 
         Assert.That(page?.DeepMergeProps, Is.EqualTo(new List<string> { "testDeepMerge1", "testDeepMerge2" }));
-        // Deep merge props should also appear in merge strategies since they inherit from Mergeable
-        Assert.That(page?.MergeStrategies, Is.EqualTo(new Dictionary<string, string[]>
+        // Deep merge props should also appear in match props on since they inherit from Mergeable
+        Assert.That(page?.MatchPropsOn, Is.EqualTo(new Dictionary<string, string[]>
         {
             { "testDeepMerge1", new[] { "deep" } },
             { "testDeepMerge2", new[] { "shallow", "replace" } }

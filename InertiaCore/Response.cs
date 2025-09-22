@@ -48,7 +48,7 @@ public class Response : IActionResult
         };
 
         page.MergeProps = ResolveMergeProps(props);
-        page.MergeStrategies = ResolveMergeStrategies(props);
+        page.MatchPropsOn = ResolveMatchPropsOn(props);
         page.DeepMergeProps = ResolveDeepMergeProps(props);
         page.Props["errors"] = GetErrors();
 
@@ -201,9 +201,9 @@ public class Response : IActionResult
     }
 
     /// <summary>
-    /// Resolve merge strategies for properties that should be merged with custom strategies.
+    /// Resolve match props on for properties that should be matched on specific keys.
     /// </summary>
-    private Dictionary<string, string[]>? ResolveMergeStrategies(Dictionary<string, object?> props)
+    private Dictionary<string, string[]>? ResolveMatchPropsOn(Dictionary<string, object?> props)
     {
         // Parse the "RESET" header into a collection of keys to reset
         var resetProps = new HashSet<string>(
@@ -235,24 +235,24 @@ public class Response : IActionResult
             .Select(kv => kv.Key.ToCamelCase()) // Convert property name to camelCase
             .ToList();
 
-        // Filter the props that have merge strategies
-        var mergeStrategies = _props.Where(o => o.Value is Mergeable mergeable && mergeable.ShouldMerge() && mergeable.GetMergeStrategies() != null)
+        // Filter the props that have match on keys
+        var matchPropsOn = _props.Where(o => o.Value is Mergeable mergeable && mergeable.ShouldMerge() && mergeable.GetMatchOn() != null)
             .Where(kv => !resetProps.Contains(kv.Key)) // Exclude reset keys
             .Where(kv => onlyProps.Count == 0 || onlyProps.Contains(kv.Key)) // Include only specified keys if any
             .Where(kv => !exceptProps.Contains(kv.Key)) // Exclude specified keys
             .Where(kv => resolvedProps.Contains(kv.Key.ToCamelCase())) // Filter only the props that are in the resolved props
             .ToDictionary(
                 kv => kv.Key.ToCamelCase(), // Convert property name to camelCase
-                kv => ((Mergeable)kv.Value!).GetMergeStrategies()!
+                kv => ((Mergeable)kv.Value!).GetMatchOn()!
             );
 
-        if (mergeStrategies.Count == 0)
+        if (matchPropsOn.Count == 0)
         {
             return null;
         }
 
         // Return the result
-        return mergeStrategies;
+        return matchPropsOn;
     }
 
     /// <summary>
