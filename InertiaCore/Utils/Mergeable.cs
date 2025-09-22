@@ -3,6 +3,7 @@ namespace InertiaCore.Utils;
 public interface Mergeable
 {
     public bool merge { get; set; }
+    public bool deepMerge { get; set; }
     public string[]? matchOn { get; set; }
 
     public Mergeable Merge()
@@ -12,6 +13,13 @@ public interface Mergeable
         return this;
     }
 
+    public Mergeable DeepMerge()
+    {
+        deepMerge = true;
+
+        return this->Merge();
+    }
+
     public Mergeable MatchesOn(params string[] keys)
     {
         matchOn = keys;
@@ -19,5 +27,6 @@ public interface Mergeable
     }
 
     public bool ShouldMerge() => merge;
+    public bool ShouldDeepMerge() => deepMerge;
     public string[]? GetMatchOn() => matchOn;
 }
