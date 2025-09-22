@@ -69,15 +69,9 @@ public static class Inertia
 
     public static MergeProp Merge(Func<Task<object?>> callback) => _factory.Merge(callback);
 
-    public static MergeProp Merge(object? value, string strategy) => _factory.Merge(value, strategy);
+    public static DeepMergeProp DeepMerge(object? value) => _factory.DeepMerge(value);
 
-    public static MergeProp Merge(object? value, string[]? strategies) => _factory.Merge(value, strategies);
+    public static DeepMergeProp DeepMerge(Func<object?> callback) => _factory.DeepMerge(callback);
 
-    public static MergeProp Merge(Func<object?> callback, string strategy) => _factory.Merge(callback, strategy);
-
-    public static MergeProp Merge(Func<object?> callback, string[]? strategies) => _factory.Merge(callback, strategies);
-
-    public static MergeProp Merge(Func<Task<object?>> callback, string strategy) => _factory.Merge(callback, strategy);
-
-    public static MergeProp Merge(Func<Task<object?>> callback, string[]? strategies) => _factory.Merge(callback, strategies);
+    public static DeepMergeProp DeepMerge(Func<Task<object?>> callback) => _factory.DeepMerge(callback);
 }

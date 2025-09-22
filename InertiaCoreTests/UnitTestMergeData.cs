@@ -1,4 +1,5 @@
 using InertiaCore.Models;
+using InertiaCore.Utils;
 using Microsoft.AspNetCore.Http;
 
 namespace InertiaCoreTests;
@@ -319,14 +320,14 @@ public partial class Tests
     }
 
     [Test]
-    [Description("Test if merge strategies are resolved properly for merge props.")]
-    public async Task TestMergeStrategies()
+    [Description("Test if match props on are resolved properly for merge props.")]
+    public async Task TestMatchPropsOn()
     {
         var response = _factory.Render("Test/Page", new
         {
             Test = "Test",
-            TestMerge1 = _factory.Merge("Merge1", "deep"),
-            TestMerge2 = _factory.Merge(() => "Merge2", new[] { "shallow", "replace" }),
+            TestMerge1 = ((Mergeable)_factory.Merge("Merge1")).MatchesOn("deep"),
+            TestMerge2 = ((Mergeable)_factory.Merge(() => "Merge2")).MatchesOn("shallow", "replace"),
             TestNormal = "Normal"
         });
 
@@ -347,7 +348,7 @@ public partial class Tests
         }));
 
         Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge1", "testMerge2" }));
-        Assert.That(page?.MergeStrategies, Is.EqualTo(new Dictionary<string, string[]>
+        Assert.That(page?.MatchPropsOn, Is.EqualTo(new Dictionary<string, string[]>
         {
             { "testMerge1", new[] { "deep" } },
             { "testMerge2", new[] { "shallow", "replace" } }
@@ -355,14 +356,14 @@ public partial class Tests
     }
 
     [Test]
-    [Description("Test if merge strategies are handled properly with partial props.")]
-    public async Task TestMergeStrategiesWithPartialProps()
+    [Description("Test if match props on are handled properly with partial props.")]
+    public async Task TestMatchPropsOnWithPartialProps()
     {
         var response = _factory.Render("Test/Page", new
         {
-            TestMerge1 = _factory.Merge("Merge1", "deep"),
-            TestMerge2 = _factory.Merge(() => "Merge2", new[] { "shallow", "replace" }),
-            TestMerge3 = _factory.Merge("Merge3", "custom")
+            TestMerge1 = ((Mergeable)_factory.Merge("Merge1")).MatchesOn("deep"),
+            TestMerge2 = ((Mergeable)_factory.Merge(() => "Merge2")).MatchesOn("shallow", "replace"),
+            TestMerge3 = ((Mergeable)_factory.Merge("Merge3")).MatchesOn("custom")
         });
 
         var headers = new HeaderDictionary
@@ -386,7 +387,7 @@ public partial class Tests
         }));
 
         Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge1", "testMerge3" }));
-        Assert.That(page?.MergeStrategies, Is.EqualTo(new Dictionary<string, string[]>
+        Assert.That(page?.MatchPropsOn, Is.EqualTo(new Dictionary<string, string[]>
         {
             { "testMerge1", new[] { "deep" } },
             { "testMerge3", new[] { "custom" } }
@@ -394,14 +395,14 @@ public partial class Tests
     }
 
     [Test]
-    [Description("Test if merge strategies are excluded when using PARTIAL_EXCEPT header.")]
-    public async Task TestMergeStrategiesWithPartialExcept()
+    [Description("Test if match props on are excluded when using PARTIAL_EXCEPT header.")]
+    public async Task TestMatchPropsOnWithPartialExcept()
     {
         var response = _factory.Render("Test/Page", new
         {
             Test = "Test",
-            TestMerge1 = _factory.Merge("Merge1", "deep"),
-            TestMerge2 = _factory.Merge(() => "Merge2", new[] { "shallow", "replace" }),
+            TestMerge1 = ((Mergeable)_factory.Merge("Merge1")).MatchesOn("deep"),
+            TestMerge2 = ((Mergeable)_factory.Merge(() => "Merge2")).MatchesOn("shallow", "replace"),
             TestNormal = "Normal"
         });
 
@@ -427,15 +428,15 @@ public partial class Tests
         }));
 
         Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge2" }));
-        Assert.That(page?.MergeStrategies, Is.EqualTo(new Dictionary<string, string[]>
+        Assert.That(page?.MatchPropsOn, Is.EqualTo(new Dictionary<string, string[]>
         {
             { "testMerge2", new[] { "shallow", "replace" } }
         }));
     }
 
     [Test]
-    [Description("Test if merge strategies are null when no merge props have strategies.")]
-    public async Task TestNoMergeStrategies()
+    [Description("Test if match props on are null when no merge props have match keys.")]
+    public async Task TestNoMatchPropsOn()
     {
         var response = _factory.Render("Test/Page", new
         {
@@ -460,7 +461,7 @@ public partial class Tests
         }));
 
         Assert.That(page?.MergeProps, Is.EqualTo(new List<string> { "testMerge" }));
-        Assert.That(page?.MergeStrategies, Is.EqualTo(null));
+        Assert.That(page?.MatchPropsOn, Is.EqualTo(null));
     }
 
 }

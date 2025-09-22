@@ -39,12 +39,9 @@ internal interface IResponseFactory
     public MergeProp Merge(object? value);
     public MergeProp Merge(Func<object?> callback);
     public MergeProp Merge(Func<Task<object?>> callback);
-    public MergeProp Merge(object? value, string strategy);
-    public MergeProp Merge(object? value, string[]? strategies);
-    public MergeProp Merge(Func<object?> callback, string strategy);
-    public MergeProp Merge(Func<object?> callback, string[]? strategies);
-    public MergeProp Merge(Func<Task<object?>> callback, string strategy);
-    public MergeProp Merge(Func<Task<object?>> callback, string[]? strategies);
+    public DeepMergeProp DeepMerge(object? value);
+    public DeepMergeProp DeepMerge(Func<object?> callback);
+    public DeepMergeProp DeepMerge(Func<Task<object?>> callback);
     public OptionalProp Optional(Func<object?> callback);
     public OptionalProp Optional(Func<Task<object?>> callback);
 }
@@ -221,12 +218,9 @@ internal class ResponseFactory : IResponseFactory
     public MergeProp Merge(object? value) => new(value);
     public MergeProp Merge(Func<object?> callback) => new(callback);
     public MergeProp Merge(Func<Task<object?>> callback) => new(callback);
-    public MergeProp Merge(object? value, string strategy) => new(value, strategy);
-    public MergeProp Merge(object? value, string[]? strategies) => new(value, strategies);
-    public MergeProp Merge(Func<object?> callback, string strategy) => new(callback, strategy);
-    public MergeProp Merge(Func<object?> callback, string[]? strategies) => new(callback, strategies);
-    public MergeProp Merge(Func<Task<object?>> callback, string strategy) => new(callback, strategy);
-    public MergeProp Merge(Func<Task<object?>> callback, string[]? strategies) => new(callback, strategies);
+    public DeepMergeProp DeepMerge(object? value) => new(value);
+    public DeepMergeProp DeepMerge(Func<object?> callback) => new(callback);
+    public DeepMergeProp DeepMerge(Func<Task<object?>> callback) => new(callback);
     public OptionalProp Optional(Func<object?> callback) => new(callback);
     public OptionalProp Optional(Func<Task<object?>> callback) => new(callback);
 
